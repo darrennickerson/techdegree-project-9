@@ -132,13 +132,26 @@ router.post(
 //Updates a course
 router.put(
   '/courses/:id',
-  authenticateUser,
+  authenticateUser, // make sure this works
   asyncHandler(async (req, res) => {
     try {
       const courseId = req.params.id;
-      const course = await Courses.findByPk(courseId);
-      course.update(req.body);
-      res.status(204).json();
+      const course = await Courses.findByPk(courseId, {
+        include: [
+          {
+            model: Users,
+            attributes: ['id', 'firstName', 'lastName', 'emailAddress'],
+          },
+        ],
+      });
+      const user = req.currentUser;
+
+      if (user.emailAddress === course.User.emailAddress) {
+        course.update(req.body);
+        res.status(204).json();
+      } else {
+        res.send('Not Authenticated', 403);
+      }
     } catch (error) {
       console.log(error.name);
       if (
@@ -160,10 +173,22 @@ router.delete(
   authenticateUser,
   asyncHandler(async (req, res) => {
     const courseId = req.params.id;
-    const course = await Courses.findByPk(courseId);
-    course.destroy(course);
+    const course = await Courses.findByPk(courseId, {
+      include: [
+        {
+          model: Users,
+          attributes: ['id', 'firstName', 'lastName', 'emailAddress'],
+        },
+      ],
+    });
+    const user = req.currentUser;
 
-    res.status(204).json();
+    if (user.emailAddress === course.User.emailAddress) {
+      course.destroy(course);
+      res.status(204).json();
+    } else {
+      res.send('Not Authenticated', 403);
+    }
   })
 );
 module.exports = router;
