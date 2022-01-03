@@ -19,8 +19,6 @@ router.get(
       lastName: req.currentUser.lastName,
       emailAddress: req.currentUser.emailAddress,
     };
-    console.log(user);
-
     res.status(200).json(user);
   })
 );
