@@ -4,6 +4,7 @@ const express = require('express');
 const { asyncHandler } = require('./middleware/ayncHandler');
 const { Users, Courses } = require('./models');
 const { authenticateUser } = require('./middleware/auth-user');
+const e = require('express');
 
 // Construct a router instance.
 const router = express.Router();
@@ -130,23 +131,29 @@ router.post(
 //Updates a course
 router.put(
   '/courses/:id',
-  authenticateUser, // make sure this works
+  authenticateUser,
   asyncHandler(async (req, res) => {
+    const courseId = req.params.id;
+    const course = await Courses.findByPk(courseId, {
+      include: [
+        {
+          model: Users,
+          attributes: ['id', 'firstName', 'lastName', 'emailAddress'],
+        },
+      ],
+    });
+    const user = req.currentUser;
     try {
-      const courseId = req.params.id;
-      const course = await Courses.findByPk(courseId, {
-        include: [
-          {
-            model: Users,
-            attributes: ['id', 'firstName', 'lastName', 'emailAddress'],
-          },
-        ],
-      });
-      const user = req.currentUser;
-
       if (user.emailAddress === course.User.emailAddress) {
-        course.update(req.body);
-        res.status(204).json();
+        if (
+          (await req.body.constructor) === Object &&
+          Object.keys(req.body).length === 0
+        ) {
+          res.status(500).send({ error: "Can't be empty" });
+        } else {
+          course.update(req.body);
+          res.status(204).json();
+        }
       } else {
         res.send('Not Authenticated', 403);
       }
